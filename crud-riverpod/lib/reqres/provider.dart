@@ -2,48 +2,47 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api.dart';
 import 'models.dart';
 
-final userRepositoryProvider = Provider<UserRepository>((ref) => UserRepository());
-
-final userListProvider = StateNotifierProvider<UserListNotifier, AsyncValue<List<User>>>((ref) {
-  final repository = ref.watch(userRepositoryProvider);
-  return UserListNotifier(repository);
+final userListProvider = AsyncNotifierProvider<UserListNotifier, List<User>>(() {
+  return UserListNotifier();
 });
 
-class UserListNotifier extends StateNotifier<AsyncValue<List<User>>> {
-  final UserRepository repository;
-  UserListNotifier(this.repository) : super(const AsyncValue.loading()) {
-    loadUsers();
-  }
+class UserListNotifier extends AsyncNotifier<List<User>> {
+  UserAPI get _userAPI => ref.read(userAPIProvider.notifier);
 
-  Future<void> loadUsers() async {
-    try {
-      final users = await repository.fetchUsers();
-      state = AsyncValue.data(users);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+  @override
+  Future<List<User>> build() async {
+    return await _userAPI.fetchUsers();
   }
 
   Future<void> fetchUsers() async {
-    await loadUsers();
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      return await _userAPI.fetchUsers();
+    });
   }
 
   Future<void> addUser(User user) async {
-    final currentUsers = state.value ?? [];
-    state = AsyncValue.data([...currentUsers, user]);
+    state = await AsyncValue.guard(() async {
+      final currentUsers = state.value ?? [];
+      return [...currentUsers, user];
+    });
   }
 
   Future<void> updateUserInList(User user) async {
-    final currentUsers = state.value ?? [];
-    final index = currentUsers.indexWhere((u) => u.id == user.id);
-    if (index == -1) return;
-    currentUsers[index] = user;
-    state = AsyncValue.data(List.from(currentUsers));
+    state = await AsyncValue.guard(() async {
+      final currentUsers = state.value ?? [];
+      final index = currentUsers.indexWhere((u) => u.id == user.id);
+      if (index == -1) return currentUsers;
+      final updated = List<User>.from(currentUsers);
+      updated[index] = user;
+      return updated;
+    });
   }
 
   Future<void> removeUser(int id) async {
-    final currentUsers = state.value ?? [];
-    final updated = currentUsers.where((u) => u.id != id).toList();
-    state = AsyncValue.data(updated);
+    state = await AsyncValue.guard(() async {
+      final currentUsers = state.value ?? [];
+      return currentUsers.where((u) => u.id != id).toList();
+    });
   }
 }

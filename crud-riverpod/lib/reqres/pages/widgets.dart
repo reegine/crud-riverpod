@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api.dart';
 import '../models.dart';
 import '../provider.dart';
 
@@ -13,7 +14,7 @@ class UserListTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userListNotifier = ref.read(userListProvider.notifier);
-    final repo = ref.read(userRepositoryProvider);
+    final userAPI = ref.read(userAPIProvider.notifier);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -39,8 +40,8 @@ class UserListTile extends ConsumerWidget {
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () async {
                 try {
-                  await repo.deleteUser (user.id!);
-                  await userListNotifier.removeUser (user.id!);
+                  await userAPI.deleteUser(user.id!);
+                  await userListNotifier.removeUser(user.id!);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error: $e')));
@@ -53,7 +54,6 @@ class UserListTile extends ConsumerWidget {
     );
   }
 }
-
 
 class UserEditDialog extends ConsumerStatefulWidget {
   final User user;
@@ -87,7 +87,7 @@ class _UserEditDialogState extends ConsumerState<UserEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final repo = ref.read(userRepositoryProvider);
+    final userAPI = ref.read(userAPIProvider.notifier);
     final userListNotifier = ref.read(userListProvider.notifier);
 
     return AlertDialog(
@@ -129,8 +129,8 @@ class _UserEditDialogState extends ConsumerState<UserEditDialog> {
             }
 
             try {
-              final updatedUser  = await repo.updateUser(widget.user.id!, firstName, lastName);
-              await userListNotifier.updateUserInList(updatedUser );
+              final updatedUser = await userAPI.updateUser(widget.user.id!, firstName, lastName);
+              await userListNotifier.updateUserInList(updatedUser);
               Navigator.pop(context);
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(

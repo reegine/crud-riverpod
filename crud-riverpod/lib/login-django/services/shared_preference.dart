@@ -17,7 +17,7 @@ class SharedPrefsService {
     final prefs = await _instance;
     final userJson = prefs.getString('auth_user');
     if (userJson != null) {
-      return AuthUser.fromLoginJson(json.decode(userJson));
+      return AuthUser.fromJson(json.decode(userJson));
     }
     return null;
   }

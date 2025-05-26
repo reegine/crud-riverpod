@@ -1,70 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/auth.dart';
 import '../provider/auth_provider.dart';
-import '../services/auth_service.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authStateProvider);
-    final authService = ref.read(authServiceProvider);
-    final authNotifier = ref.read(authStateProvider.notifier);
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
 
-    // TextEditingController emailController = TextEditingController(text: user?.email ?? '');
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  late final TextEditingController _emailController;
 
-    // Future<void> _showUpdateEmailDialog() async {
-    //   emailController.text = user?.email ?? '';
-    //
-    //   await showDialog(
-    //     context: context,
-    //     builder: (context) => AlertDialog(
-    //       title: const Text('Update Email'),
-    //       content: TextField(
-    //         controller: emailController,
-    //         decoration: const InputDecoration(
-    //           labelText: 'Email',
-    //         ),
-    //         keyboardType: TextInputType.emailAddress,
-    //       ),
-    //       actions: [
-    //         TextButton(
-    //           onPressed: () => Navigator.pop(context),
-    //           child: const Text('Cancel'),
-    //         ),
-    //         ElevatedButton(
-    //           onPressed: () async {
-    //             final newEmail = emailController.text.trim();
-    //             if (newEmail.isEmpty) {
-    //               ScaffoldMessenger.of(context).showSnackBar(
-    //                 const SnackBar(content: Text('Email cannot be empty')),
-    //               );
-    //               return;
-    //             }
-    //             Navigator.pop(context);
-    //
-    //             try {
-    //               // Call update email method
-    //               if (user != null) {
-    //                 final updatedUser  = await authService.updateUserEmail(user.token, newEmail);
-    //                 // Update the state with new user info
-    //                 authNotifier.state = updatedUser ;
-    //                 ScaffoldMessenger.of(context).showSnackBar(
-    //                     const SnackBar(content: Text('Email updated successfully')));
-    //               }
-    //             } catch (e) {
-    //               ScaffoldMessenger.of(context).showSnackBar(
-    //                   SnackBar(content: Text('Failed to update email: $e')));
-    //             }
-    //           },
-    //           child: const Text('Update'),
-    //         )
-    //       ],
-    //     ),
-    //   );
-    // }
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authNotifierProvider).value;
+    _emailController = TextEditingController(text: user?.email ?? '');
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -73,48 +38,39 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await authNotifier.logout();
-              if (context.mounted) {
+              await ref.read(authNotifierProvider.notifier).logout();
+              if (mounted) {
                 Navigator.pushReplacementNamed(context, '/login');
               }
             },
           ),
         ],
       ),
-      body: Center(
-        child: FutureBuilder<AuthUser>(
-          future: user != null ? authService.fetchUserInfo(user.token) : null,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            } else if (!snapshot.hasData) {
-              return const Text('No user data found.');
-            }
+      body: authState.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
+        data: (user) {
+          if (user == null) {
+            return const Center(child: Text('No user data found.'));
+          }
 
-            final fetchedUser  = snapshot.data!;
-            return Column(
+          return Center(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Welcome, ${fetchedUser .username.isNotEmpty ? fetchedUser .username : 'User '}!',
+                  'Welcome, ${user.username!.isNotEmpty ? user.username : 'User'}!',
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Email: ${fetchedUser .email}',
+                  'Email: ${user.email}',
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                const SizedBox(height: 16),
-                // ElevatedButton(
-                //   onPressed: _showUpdateEmailDialog,
-                //   child: const Text('Update Email'),
-                // ),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

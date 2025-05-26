@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:form_field_validator/form_field_validator.dart';
 import '../provider/auth_provider.dart';
 import '../router/app_router.dart';
@@ -28,7 +29,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(authStateProvider.select((value) => value != null));
+    final isLoading = ref.watch(authNotifierProvider.select((value) => value.isLoading));
 
     return Scaffold(
       body: Center(
@@ -137,7 +138,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (_formKey.currentState!.validate()) {
       try {
         setState(() => _errorMessage = null);
-        await ref.read(authStateProvider.notifier).register(
+        await ref.read(authNotifierProvider.notifier).register(
           _emailController.text.trim(),
           _usernameController.text.trim(),
           _passwordController.text.trim(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../pages/home_page.dart';
 import '../pages/login_page.dart';
 import '../pages/register_page.dart';
@@ -36,9 +37,15 @@ class AuthWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
-    final isLoggedIn = authState != null && authState.token.isNotEmpty;
+    final authState = ref.watch(authNotifierProvider);
 
-    return isLoggedIn ? const HomeScreen() : const LoginScreen();
+    return authState.when(
+      loading: () => const CircularProgressIndicator(),
+      error: (error, stack) => const LoginScreen(), // or show error
+      data: (user) {
+        final isLoggedIn = user != null && user.token.isNotEmpty;
+        return isLoggedIn ? const HomeScreen() : const LoginScreen();
+      },
+    );
   }
 }

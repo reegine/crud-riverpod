@@ -2,6 +2,7 @@ import 'package:crud_riverpod/reqres/pages/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api.dart';
 import '../models.dart';
 import '../provider.dart';
 
@@ -38,13 +39,13 @@ class UserListPage extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-          onPressed: () => _showUserForm(context,ref),
-      child: const Icon(Icons.add),
-    ),
+        onPressed: () => _showUserForm(context, ref),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 
-  Future<void> _showUserForm(BuildContext context, WidgetRef ref, {User ? user}) async {
+  Future<void> _showUserForm(BuildContext context, WidgetRef ref, {User? user}) async {
     final firstNameController = TextEditingController(text: user?.firstName ?? '');
     final lastNameController = TextEditingController(text: user?.lastName ?? '');
     final emailController = TextEditingController(text: user?.email ?? '');
@@ -79,9 +80,8 @@ class UserListPage extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              final repo = ref.read(userRepositoryProvider);
+              final userAPI = ref.read(userAPIProvider.notifier);
               final userListNotifier = ref.read(userListProvider.notifier);
-
               final firstName = firstNameController.text.trim();
               final lastName = lastNameController.text.trim();
               final email = emailController.text.trim();
@@ -95,11 +95,11 @@ class UserListPage extends ConsumerWidget {
               Navigator.pop(context);
               try {
                 if (user == null) {
-                  final newUser  = await repo.createUser (firstName, lastName);
-                  await userListNotifier.addUser (newUser );
+                  final newUser = await userAPI.createUser(firstName, lastName);
+                  await userListNotifier.addUser(newUser);
                 } else {
-                  final updatedUser  = await repo.updateUser (user.id!, 'morpheus', 'zion resident');
-                  await userListNotifier.updateUserInList(updatedUser );
+                  final updatedUser = await userAPI.updateUser(user.id!, firstName, lastName);
+                  await userListNotifier.updateUserInList(updatedUser);
                 }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(

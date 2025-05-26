@@ -10,8 +10,6 @@ class AuthService {
   AuthService({required this.client});
 
   Future<AuthUser> login(String username, String password) async {
-    print(username);
-    print(password);
     final response = await client.post(
       Uri.parse('$_baseUrl/auth/token/login/'),
       headers: {
@@ -23,19 +21,26 @@ class AuthService {
         'password': password,
       }),
     );
-    print(response.body);
 
     if (response.statusCode == 200) {
-      final userJson = json.decode(response.body);
-      print('User data: $userJson');
-      return AuthUser.fromLoginJson(json.decode(response.body));
+      final body = json.decode(response.body);
+      final token = body['auth_token']; // Adjust key to match your backend
 
+      if (token == null) {
+        throw Exception('Token missing from login response');
+      }
+
+      // Fetch full user info using the token
+      final user = await fetchUserInfo(token);
+
+      // Return user with token manually inserted
+      return user.copyWith(token: token);
     } else {
-      print(response.body);
       final error = json.decode(response.body);
       throw Exception(error['detail'] ?? error['non_field_errors']?.first ?? 'Login failed');
     }
   }
+
 
   Future<AuthUser> register(String email, String username, String password) async {
     final response = await client.post(
@@ -49,7 +54,7 @@ class AuthService {
     );
 
     if (response.statusCode == 201) {
-      return AuthUser.fromRegisterJson(json.decode(response.body));
+      return AuthUser.fromJson(json.decode(response.body));
     } else {
       final error = json.decode(response.body);
       final errorMessage = error.values.first is List
@@ -86,7 +91,7 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final userJson = json.decode(response.body);
-      return AuthUser .fromLoginJson(userJson);
+      return AuthUser.fromJson(userJson);
     } else {
       throw Exception('Failed to fetch user info');
     }
@@ -104,7 +109,7 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final userJson = json.decode(response.body);
-      return AuthUser.fromLoginJson(userJson);
+      return AuthUser.fromJson(userJson);
     } else {
       throw Exception('Failed to update email: ${response.body}');
     }
